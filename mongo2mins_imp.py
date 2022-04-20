@@ -6,7 +6,7 @@ import re
 
 
 # Provide the mongodb atlas url to connect python to mongodb using pymongo
-CONNECTION_STRING = "lol"
+CONNECTION_STRING = ""
 # Create a connection using MongoClient. You can import MongoClient or use pymongo.MongoClient
 client = MongoClient(CONNECTION_STRING)
 #-----collections access----------------#
@@ -187,5 +187,5 @@ def readFrmFile(filename, collname):
     # Closing file
     f.close()
 
-# sendToFile(10000)
+# sendToFile(100000)
 readFrmFile('sample_export.json', db['tbl_mp3_try'])
