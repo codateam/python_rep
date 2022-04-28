@@ -9,7 +9,7 @@ import re
 # chmod 777 /var/www/html/export_convert.php
 
 # Provide the mongodb atlas url to connect python to mongodb using pymongo
-CONNECTION_STRING = "mongodb+srv://dboxAdmin_mongo:enSrsfkmrphldT1r@dboxcluster.qs6wu.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"
+CONNECTION_STRING = ""
 # Create a connection using MongoClient. You can import MongoClient or use pymongo.MongoClient
 client = MongoClient(CONNECTION_STRING)
 #-----collections access----------------#
@@ -208,3 +208,4 @@ def readFrmFile(filename, collname):
 
 sendToFile(60000)
 readFrmFile('sample_export.json', db['tbl_mp3_try'])
+# 20244,20245,20246,20247,20248,20249,20250,20251
