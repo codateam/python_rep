@@ -4,9 +4,12 @@ from pymongo import MongoClient
 import json
 import re
 
+# sudo mv /home/umarv24/Downloads/export_convert.php /var/www/html/export_convert.php
+# sudo gedit /var/www/html/export2.csvjson
+# chmod 777 /var/www/html/export_convert.php
 
 # Provide the mongodb atlas url to connect python to mongodb using pymongo
-CONNECTION_STRING = "lol"
+CONNECTION_STRING = "mongodb+srv://dboxAdmin_mongo:enSrsfkmrphldT1r@dboxcluster.qs6wu.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"
 # Create a connection using MongoClient. You can import MongoClient or use pymongo.MongoClient
 client = MongoClient(CONNECTION_STRING)
 #-----collections access----------------#
@@ -56,7 +59,7 @@ def pick_allColl_data(collname):
 
 
 AllCateg = pick_allColl_data("tbl_category_try")
-payload = Optpicker('newExport.json')
+payload = Optpicker('export2.json')
 # print(AllCateg)
 
 def sendToFile(maxlength):
@@ -109,6 +112,7 @@ def sendToFile(maxlength):
             mp3_share_url = payload[i]['mp3_share_url']
             status = int(payload[i]['status'])
             full_img = payload[i]['full_img']
+            
 
         #----------catch exception for empty album id---------#
             if payload[i]['album_id'] == "":
@@ -127,6 +131,18 @@ def sendToFile(maxlength):
                 rp_id = 0
             else:
                 rp_id = int(payload[i]['cat_id'])
+            
+        #----------catch exception for empty keyword---------#
+            if payload[i]['Keywords'] == '':
+                keyword = ""
+            else:
+                keyword = payload[i]['Keywords']
+
+            if payload[i]['key_id'] == '':
+                key_id = 0
+            else:
+                key_id = int(payload[i]['key_id'])
+
         
             #----------regular expre to clean description nd get size---------#
             try:
@@ -144,11 +160,13 @@ def sendToFile(maxlength):
                 "album_id":album_id,
                 "rp_id": rp_id,
                 "lang_id":lang_id,
+                "key_id":key_id,
                 "cat_id": total_categ_ids,
                 "mp3_title": mp3_title,
                 "mp3_url": mp3_url,
                 "mp3_thumbnail":mp3_thumbnail,
                 "cat_name":categ_name,
+                "key_name":keyword,
                 "mp3_duration":mp3_duration,
                 "mp3_description":mp3_description,
                 "mp3_share_url":mp3_share_url,
@@ -186,6 +204,7 @@ def readFrmFile(filename, collname):
     
     # Closing file
     f.close()
+    print("population complete! file closed")
 
-# sendToFile(10000)
+sendToFile(60000)
 readFrmFile('sample_export.json', db['tbl_mp3_try'])

@@ -1,6 +1,9 @@
-import mysql.connector 
+import mysql.connector
 import pymongo
 from pymongo import MongoClient
+import credentials
+from credentials import CONNECTION_STRING as C_String
+
 
 
 class bcolors:
@@ -16,12 +19,12 @@ class bcolors:
 
 
 # Provide the mongodb atlas url to connect python to mongodb using pymongo
-CONNECTION_STRING = "lol"
+CONNECTION_STRING = C_String
 # Create a connection using MongoClient. You can import MongoClient or use pymongo.MongoClient
 client = MongoClient(CONNECTION_STRING)
 
 delete_existing_documents = True
-mysqldb = mysql.connector.connect(host="localhost",   database="dawahbox_oct2019",    user="root",    password="")
+mysqldb = mysql.connector.connect(host="localhost",   database="dawahbox_dawahcast_users",    user="dawahbox_admin",    password="")
 mycursor1 = mysqldb.cursor()
 mycursor2 = mysqldb.cursor(dictionary=True)
 
@@ -30,14 +33,16 @@ all_tables = mycursor1.fetchall()
 print(f"The following data tables will be fetched from the database and prototype will be created in mongodb \n {all_tables}")
 print("")
 
+mydb = client['dboxcluster']
+# mydb = client['dawahbox_oct2019']
+# mydb = client['dawahbox_nov20']
+
 for x in all_tables:
     # print(x[0])
     mycursor2.execute("SELECT * from {0};".format(x[0]))
     myresult = mycursor2.fetchall() 
     # print(myresult, '\n')
 
-    mydb = client['dboxcluster']
-    # mydb = client['dawahbox_oct2019']
     collection_names = mydb.list_collection_names()
 
     data_tables = x[0]
@@ -59,7 +64,7 @@ for x in all_tables:
             try:
                 x2 = mycol.insert_many(myresult) #myresult comes from mysql cursor
                 print(f"{len(x2.inserted_ids)} documents created in mongo for {data_tables} ")
-                print(data_tables, 'done transferring....')
+                print(data_tables, 'Data transfer complete....')
                 print("")
             except Exception as e:
                 print(data_tables, 'skipped due to error !!!')
