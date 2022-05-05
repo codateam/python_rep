@@ -274,9 +274,11 @@ def sendToFile(filename, maxlength, all_dbId_data):
         # (mp_id,hash_obj,fulldata,filename,maxlimit)
         hashed_data = data_hasher(ids,hash_obj.hexdigest(),emp_rec1,all_dbId_data)
 
-        overallArr.append(hashed_data)
+        # print(hashed_data)
+        if hashed_data:
+            overallArr.append(hashed_data)
+        
         # overallArr.append(emp_rec1)
-
         # overallArr.append(UpdateOne(unique,{"$set":emp_rec1},upsert=True))
         
 #-----------print inserting doc----------#
@@ -288,8 +290,13 @@ def sendToFile(filename, maxlength, all_dbId_data):
         print("{0} trying to update to db now".format(bcolors.OKBLUE))
         # db['tbl_mp3'].bulk_write(overallArr,ordered=False)
         # bulk.execute()
-        db['tbl_mp3'].insert_many(overallArr)
-        print("{0} Collection updating complete...".format(bcolors.OKGREEN))
+        # print(overallArr)
+        if overallArr:
+            db['tbl_mp3'].insert_many(overallArr)
+            print("{0} Collection updating complete...".format(bcolors.OKGREEN))
+        else:
+            print("no update perform !!")
+
         print(datetime.now() - startTime)
     except exception as e:
         print("{0} error: ".format(bcolors.FAIL), e)
@@ -317,7 +324,7 @@ def take_choice(filename,collname,maxlimit,all_dbId_data,choice):
 
     # choice = int(input("pick the operation to perform\n 1.) Read->Process->Import \n 2.) Read->Process \n "))
     # filename = input("Input the filename e.g mydata.json: ")
-    payload = Optpicker(filename,2)
+    payload = Optpicker(filename, 2)
 
     if choice == 1:
         sendToFile(payload,maxlimit,all_dbId_data)
@@ -333,31 +340,35 @@ def data_hasher(mp_id,hash_obj,fulldata,all_dbId_data):
     print("{0} Hashing....{1}--to--{2}".format(bcolors.OKGREEN,mp_id,hash_obj))
         
     processed_Data = {} #empty dictionary to represent data
-
-    #check if data not exist before
-
-    if bool(all_dbId_data) != False:
-        if not all_dbId_data[mp_id]:
-            try:
-                print("{0} New nid detected, creating new document.....".format(bcolors.OKBLUE))
-                processed_Data = fulldata #returned the fresh fulldata to create new document
-            except Exception as e:
-                print("error",e)
-        else:
-            # for items in all_dbId_data[mp_id]:
+    
+    try: # if key mp_id exist from the fetched data
+        if all_dbId_data[mp_id]:
+            
             print("{0}---###---{1}".format(all_dbId_data[mp_id]['hashed'],hash_obj))
-            if hash_obj == all_dbId_data[mp_id]['hashed']:
+            if hash_obj == all_dbId_data[mp_id]['hashed']: # print both hashes and compare them
                 print("{0} Same id and Hash detected for {1} skipping document.......".format(bcolors.FAIL,all_dbId_data[mp_id]['hashed']))
+
                 processed_Data = processed_Data #returned epty processed data cox of duplicate data detected
-            else:
+
+            
+            else: #if not same update with new hash values
                 print("{0} Same id but different Hash detected, updating current data......".format(bcolors.WARNING,all_dbId_data[mp_id]['hashed']))
                 if all_dbId_data[mp_id]['views']:
                     fulldata['views'] = all_dbId_data[mp_id]['views']
                 if all_dbId_data[mp_id]['downloads']:
                     fulldata['downloads'] = all_dbId_data[mp_id]['downloads']
+
                 processed_Data = fulldata #returned the fulldata to update existing values with
         
- #14405764
+    
+    except KeyError as e: #if key doesn't exist create new document set
+        print('error trying to check data existence', e)
+        try:
+            print("{0} New nid detected, creating new document.....".format(bcolors.OKBLUE))
+            processed_Data = fulldata #returned the fresh fulldata to create new document
+        except Exception as e:
+            print("error",e)
+    
     return processed_Data
                 
  
@@ -369,10 +380,12 @@ if __name__ == '__main__':
     
     filename = "export_apr_30.json"
     collname = "tbl_mp3"
-    maxlimit = 5000
+    maxlimit = 10000
     all_dbId_data = []
     # all_dbId_data = load_all_ids('tbl_mp3',Optpicker("export_apr_30.json"),maxlimit)
     # load_all_ids('tbl_mp3',Optpicker(filename),maxlimit)
     all_dbId_data = load_all_ids(collname,filename,maxlimit)
     take_choice(filename, collname, maxlimit, all_dbId_data,1)
 # 20244,20245,20246,20247,20248,20249,20250,20251
+
+# 0:00:29.427551
