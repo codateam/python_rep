@@ -3,16 +3,13 @@ from logging import exception
 from pickle import EMPTY_DICT
 from numpy import empty
 import pandas as pd
-from pymongo import MongoClient,UpdateOne
+from pymongo import MongoClient,InsertOne
 import json
 import re
 import credentials as cstring
 import hashlib
 from datetime import datetime
 
-# sudo mv /home/umarv24/Downloads/export_convert.php /var/www/html/export_convert.php
-# sudo gedit /var/www/html/export2.csvjson
-# chmod 777 /var/www/html/export_convert.php
 
 class bcolors:
     HEADER = '\033[95m'
@@ -60,13 +57,14 @@ def Optpicker(file_name,conv_type):
         try:
             f = open(file_name)
             payload = json.load(f)
+            data_len = len(payload)
         except Exception as e:
             print('error:', e)
     
     else:
         print("pass...........")
     
-    return payload
+    return [payload,data_len]
 
 #-----------------------------------------#
     #------------------pick all categ data once-----------------------#
@@ -96,26 +94,29 @@ def pick_keyColl_data(collname):
     #------------------pick all records of source ids immediately-----------------------#
 def load_all_ids(dbcoll,dataSource, maxitem):
 
-    print("Start all data loading for performace......")
+    print("""Start all data loading to improve performance, if data size > 5000
+        only 5000 records will be loaded & checked for due to performance""")
+
     f = open(dataSource)
     payload = json.load(f)
 
     mp_id_arr = []
-    for i in range(0,maxitem):
-    # for datum in dataSource:
-        mp_id_arr.append(payload[i]['id'])
+    if maxitem <= 5000:
+        for i in range(0,maxitem):
+            mp_id_arr.append(payload[i]['id'])
+    
+    else:
+        for i in range(0,5000):
+            mp_id_arr.append(payload[i]['id'])
     
     cursor1 = db[dbcoll].find({'id':{'$in' :mp_id_arr}})
 
     print("fetched all related ids records....")
     all_ids_data = {}
     for data in cursor1:
-        # print(data['id'])
         all_ids_data[data['id']] = data
-        # print(f"{all_ids_data}\n")
     
     print("Done fetching all related records........")
-    # print(all_ids_data)
     return all_ids_data
 
 
@@ -143,21 +144,13 @@ def multi_data_splitter(dataSource, dataIndex, keycheck, dbDatas, total_data_ids
     data_id = data_id[0:len(data_id)-1]  
     return total_data_ids
 
-
 AllCateg = pick_allColl_data("tbl_category_try")
 AllKeys = pick_keyColl_data("all_keywords")
-# all_dbId_data = load_all_ids('tbl_mp3',"export_apr_30.json",10)
-
-# payload = Optpicker('export2.json')
-# print(AllCateg)
 
 def sendToFile(filename, maxlength, all_dbId_data):
     payload = filename
-    # print(payload)
-    # with open("sample_export.json", "w") as outfile:
     overallArr = []
     for i in range(0,maxlength):
-        # print(i)
         #---------find equiv art id using artist name------#
         total_categ_ids = []
         if payload[i]['mp3_artist'] == "":
@@ -222,12 +215,6 @@ def sendToFile(filename, maxlength, all_dbId_data):
         else:
             keyword = payload[i]['Keywords']
 
-        # if payload[i]['key_id'] == '':
-        #     key_id = 0
-        # else:
-        #     key_id = int(payload[i]['key_id'])
-
-    
         #----------regular expre to clean description nd get size---------#
         try:
             extr_size = re.search('Size:(.+?)P3]', mp3_description).group()
@@ -270,34 +257,29 @@ def sendToFile(filename, maxlength, all_dbId_data):
 
         
         #------for crosschecking before updating
-        # print()
-        # (mp_id,hash_obj,fulldata,filename,maxlimit)
         hashed_data = data_hasher(ids,hash_obj.hexdigest(),emp_rec1,all_dbId_data)
 
         # print(hashed_data)
-        if hashed_data:
+        if hashed_data: #make sure that hashed_data is not empty dictionary
             overallArr.append(hashed_data)
-        
-        # overallArr.append(emp_rec1)
-        # overallArr.append(UpdateOne(unique,{"$set":emp_rec1},upsert=True))
+            # overallArr.append(InsertOne(hashed_data))
         
 #-----------print inserting doc----------#
         # print(f"inserting {ids} records with desc {mp3_description}Title: {mp3_title}\nMp3 Url: {mp3_url}")
         # print(f"inserted record:---------------{i} out of {no_of_rec}-----------------------------------------------------------------------------------\n")
     
     try:
-        
+        print("Total logic carried out finished in: {0} time".format(datetime.now() - startTime))
         print("{0} trying to update to db now".format(bcolors.OKBLUE))
-        # db['tbl_mp3'].bulk_write(overallArr,ordered=False)
-        # bulk.execute()
-        # print(overallArr)
+        
         if overallArr:
+            # db['tbl_mp3_mod'].bulk_write(overallArr)
             db['tbl_mp3'].insert_many(overallArr)
             print("{0} Collection updating complete...".format(bcolors.OKGREEN))
         else:
             print("no update perform !!")
 
-        print(datetime.now() - startTime)
+        print("Collection updated with {0} documents at {1}".format(maxlength,datetime.now() - startTime))
     except exception as e:
         print("{0} error: ".format(bcolors.FAIL), e)
         print(datetime.now() - startTime)
@@ -320,17 +302,17 @@ def sendToFile(filename, maxlength, all_dbId_data):
 #     print("{0} population complete! file closed".format(bcolors.OKGREEN))
 
 #--------------------Dispatcher------------------------#
-def take_choice(filename,collname,maxlimit,all_dbId_data,choice):
+def take_choice(filename,collname,all_dbId_data,choice):
 
     # choice = int(input("pick the operation to perform\n 1.) Read->Process->Import \n 2.) Read->Process \n "))
     # filename = input("Input the filename e.g mydata.json: ")
     payload = Optpicker(filename, 2)
 
     if choice == 1:
-        sendToFile(payload,maxlimit,all_dbId_data)
+        sendToFile(payload[0],payload[1],all_dbId_data)
         # readFrmFile("sample_export.json", db[collname])
     elif choice == 2:
-        sendToFile(payload,maxlimit,all_dbId_data)
+        sendToFile(payload[0],payload[1],all_dbId_data)
 
 
 
@@ -370,22 +352,25 @@ def data_hasher(mp_id,hash_obj,fulldata,all_dbId_data):
             print("error",e)
     
     return processed_Data
-                
  
 if __name__ == '__main__':
     
-    # filename = input("Input the filename e.g mydata.json: ")
-    # collname = input("Input the collection name to import all lectures to: ")
-    # maxlimit = int(input("Input the maximum amount of data to work on: "))
+    filename = input("Input the filename e.g mydata.json: ")
+    collname = input("Input the collection name to import all lectures to: ")
+    payload = Optpicker(filename, 2)
+    maxlimit = payload[1]
     
-    filename = "export_apr_30.json"
-    collname = "tbl_mp3"
-    maxlimit = 10000
+    # filename = "export_apr_30.json"
+    # collname = "tbl_mp3"
+    # maxlimit = 120000
     all_dbId_data = []
-    # all_dbId_data = load_all_ids('tbl_mp3',Optpicker("export_apr_30.json"),maxlimit)
-    # load_all_ids('tbl_mp3',Optpicker(filename),maxlimit)
     all_dbId_data = load_all_ids(collname,filename,maxlimit)
-    take_choice(filename, collname, maxlimit, all_dbId_data,1)
-# 20244,20245,20246,20247,20248,20249,20250,20251
+    take_choice(filename, collname, all_dbId_data,1)
 
-# 0:00:29.427551
+# 0:00:30.427551 1,000
+# 0:02:46.037159 10,000
+# 0:16:30.142752 60,000
+# 0:18:54.773865 60,000 bulk_()
+# 0:33:09.975882 120,000 insert_many()
+
+
