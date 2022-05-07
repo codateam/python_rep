@@ -47,7 +47,6 @@ for x in all_tables:
 
     data_tables = x[0]
     # print(data_tables)
-
     mycol = mydb[data_tables]
    
     if len(myresult) > 0:
