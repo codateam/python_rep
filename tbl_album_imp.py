@@ -32,7 +32,7 @@ client = MongoClient(CONNECTION_STRING)
 db = client["dboxcluster"]
 rp_coll = db['tbl_rp']
 
-mp3Coll = db['tbl_mp3_try']
+mp3Coll = db['tbl_mp3']
 langColl = db['tbl_lang']
 
 startTime = datetime.now()
@@ -121,8 +121,6 @@ def sendToFile(filename, maxlength, all_dbId_data,collname):
     payload = filename
     overallArr = []
     for i in range(0,maxlength):
-        #---------find equiv art id using artist name------#
-        # "aid","album_name","album_image","cat_id","status","lang_id","full_img","artist","Album Keywords","key_id"
         #-----datas coming from the json file-----------#
         ids = int(payload[i]['aid'])
         album_name = payload[i]['album_name']
@@ -132,7 +130,8 @@ def sendToFile(filename, maxlength, all_dbId_data,collname):
         arts = payload[i]['artist']
         Keywords = payload[i]['Album Keywords']
         key_id = payload[i]['key_id']
-        num_of_lec = pick_albLec_no('tbl_mp3_try',ids)
+        
+        num_of_lec = pick_albLec_no('tbl_mp3',ids)
         # print("{0} number of lecture found in album {1}".format(num_of_lec, ids))
 
     #------------search and produce lang using langid-------------------//
@@ -175,10 +174,8 @@ def sendToFile(filename, maxlength, all_dbId_data,collname):
         #------for crosschecking before updating
         hashed_data = data_hasher(ids,hash_obj.hexdigest(),emp_rec1,all_dbId_data)
 
-        # print(hashed_data)
         prepared = UpdateOne(unique, {'$set': hashed_data}, upsert=True )
-        # UpdateOne({'_id': 1}, {'$set': {'foo': 'bar'}}),
-        # UpdateOne({'_id': 4}, {'$inc': {'j': 1}}, upsert=True),
+      
         if hashed_data: #make sure that hashed_data is not empty dictionary
             overallArr.append(prepared)
 
