@@ -3,6 +3,8 @@ import pymongo
 from pymongo import MongoClient
 import credentials
 from credentials import CONNECTION_STRING as C_String
+import datetime
+from datetime import datetime
 
 
 
@@ -24,7 +26,7 @@ CONNECTION_STRING = C_String
 client = MongoClient(CONNECTION_STRING)
 
 delete_existing_documents = True
-mysqldb = mysql.connector.connect(host="localhost",   database="dawahbox_dawahcast_users",    user="dawahbox_admin",    password="")
+mysqldb = mysql.connector.connect(host="localhost",   database="dawahbox_nov20",    user="dawahbox_admin",    password="6]dhLpMH8iW3")
 mycursor1 = mysqldb.cursor()
 mycursor2 = mysqldb.cursor(dictionary=True)
 
@@ -33,9 +35,9 @@ all_tables = mycursor1.fetchall()
 print(f"The following data tables will be fetched from the database and prototype will be created in mongodb \n {all_tables}")
 print("")
 
-mydb = client['dboxcluster']
+# mydb = client['dboxcluster']
 # mydb = client['dawahbox_oct2019']
-# mydb = client['dawahbox_nov20']
+mydb = client['dawahbox_nov20']
 
 for x in all_tables:
     # print(x[0])
@@ -47,6 +49,7 @@ for x in all_tables:
 
     data_tables = x[0]
     # print(data_tables)
+
     mycol = mydb[data_tables]
    
     if len(myresult) > 0:
@@ -61,10 +64,25 @@ for x in all_tables:
             
 
             try:
-                x2 = mycol.insert_many(myresult) #myresult comes from mysql cursor
-                print(f"{len(x2.inserted_ids)} documents created in mongo for {data_tables} ")
-                print(data_tables, 'Data transfer complete....')
-                print("")
+                
+                if myresult[0]['date']:
+                    modified_data = []
+                    for i in range(0,len(myresult)):
+                        # print(myresult[i])
+                        myresult[i]['date'] = myresult[i]['date'].strftime('%Y-%m-%d')
+                        modified_data.append(myresult[i])
+                    print(modified_data)
+                    x2 = mycol.insert_many(modified_data) #myresult comes from mysql cursor
+                    print(f"{len(x2.inserted_ids)} documents created in mongo for {data_tables} ")
+                    print(data_tables, 'Data transfer complete....')
+                    print("")
+                
+                else:
+                    print(myresult)
+                    x2 = mycol.insert_many(myresult) #myresult comes from mysql cursor
+                    print(f"{len(x2.inserted_ids)} documents created in mongo for {data_tables} ")
+                    print(data_tables, 'Data transfer complete....')
+                    print("")
             except Exception as e:
                 print(data_tables, 'skipped due to error !!!')
                 print(e)
